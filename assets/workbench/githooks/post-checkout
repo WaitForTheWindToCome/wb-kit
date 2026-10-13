@@ -1,0 +1,8 @@
+#!/bin/sh
+# 切换分支/检出后重建索引（索引是派生物，必须与当前检出的源文件一致）
+HOOK_DIR=$(cd "$(dirname "$0")" && pwd)
+WB_DIR=$(dirname "$HOOK_DIR")
+if command -v node >/dev/null 2>&1 && [ -f "$WB_DIR/index/build.mjs" ]; then
+  node "$WB_DIR/index/build.mjs" >/dev/null 2>&1 || true
+fi
+exit 0

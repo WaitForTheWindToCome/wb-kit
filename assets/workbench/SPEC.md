@@ -206,6 +206,19 @@ decided → planned → ready → executing → verifying ─┬→ accepted →
 
 ---
 
+### 9.2 索引的定位与多机协作（ADR-0003）
+
+**索引永远不共享、永远可重建、永远不是真相源。** 使用模式已确认：**单人、每人一台机器、文档通过 git 分发**。
+
+- `index/workbench.sqlite` 与 `index/dashboard.html` **不进版本库**（见 `workbench/.gitignore`）。二进制派生物入库只会污染 diff、制造无意义冲突，并诱导人把它当成权威。
+- **每台机器各自重建**：分发的内容只有 `md` + frontmatter（可读、可 diff、可合并）；索引是本地补齐的缓存。
+- **陈旧即不可信**：索引带 `fingerprint`（"会成为记录的文件"集合的 sha256 前 12 位）。看板页头显示指纹与生成时间；`node index/selftest.mjs`（即 `wb check`）会重算指纹并比对，不一致就报 `WARN 索引落后于源文件`。
+  ⚠️ 指纹是**本机陈旧标记**，不是跨机身份：`git clone` 后 mtime 全部相同也无妨，因为每台机器本来就要各自重建一次。
+- **并发安全**：先写 `workbench.sqlite.tmp`、成功后再原子改名；看板同样先写临时文件再替换。避免 watcher 与手工 `wb build` 同时写坏产物。
+- **ID 分配不依赖数据库**：编号由扫描现有文件得出（§3），因此**不存在"只活在 sqlite 里的状态"**——删掉整个 `index/`，信息零损失。
+- **拉取后自动重建**：`git config core.hooksPath <workbench>/.githooks`（提供 `post-merge` / `post-checkout`），或常驻 `wb watch`。二者任选其一，别两个都开。
+- 冲突只可能发生在 `md` 上；因为"一个事项一个文件"，实际冲突面很小。
+
 ## 10. 多域扩展：软件 / 人生 / 考试 都是项目
 
 `project.type` 取值：`software` | `life` | `exam` | `ops` | `research` | `other`。

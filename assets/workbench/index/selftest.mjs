@@ -1,7 +1,7 @@
 // workbench/index/selftest.mjs — 断言看板可渲染：脚本能跑、数据能进、DOM 能出
 // 用法: node workbench/index/selftest.mjs
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(HERE, 'dashboard.html'), 'utf8');
@@ -33,8 +33,31 @@ const checks = [
   ['下拉使用中文标签', Object.keys(data.labels.kind).includes('item') && data.labels.kind.item === '需求条目'],
   ['每条记录均有渲染后的 HTML', data.records.every(r => r.html && r.html.length > 0)],
 ];
+// ---- 陈旧检测：索引必须对应当前版本的源文件 ----
+const ROOT = dirname(HERE);
+const SKIP = new Set(['index', 'templates', 'node_modules', 'artifacts', 'spikes']);
+function walkMd(dir, acc = []) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (e.name.startsWith('.')) continue;
+    const p = join(dir, e.name);
+    if (e.isDirectory()) { if (!SKIP.has(e.name)) walkMd(p, acc); }
+    else if (e.name.endsWith('.md') && e.name.toUpperCase() !== 'README.MD') {
+      if (relative(ROOT, p).split('\\').join('/').includes('/')) acc.push(p);
+    }
+  }
+  return acc;
+}
+const { createHash } = await import('node:crypto');
+const fpNow = createHash('sha256').update(walkMd(ROOT).map(f => {
+  const s = statSync(f);
+  return relative(ROOT, f).split('\\').join('/') + ':' + s.size + ':' + Math.floor(s.mtimeMs);
+}).join('\n')).digest('hex').slice(0, 12);
+const stale = Boolean(data.fingerprint) && fpNow !== data.fingerprint;
+
 let bad = 0;
 for (const [name, ok] of checks) { console.log((ok ? 'PASS  ' : 'FAIL  ') + name); if (!ok) bad++; }
+if (stale) console.log('WARN  索引落后于源文件（' + data.fingerprint + ' → ' + fpNow + '）：请重建（wb build）');
+else if (data.fingerprint) console.log('PASS  索引与源文件一致  fingerprint=' + fpNow);
 if (!bad && data.records.length === 0) console.log('note  空台账：0 条记录（刚初始化时的正常状态）');
 console.log(bad ? 'selftest FAILED' : 'selftest OK  records=' + data.records.length + ' cols=' + cols + ' rows=' + rows);
 process.exit(bad ? 1 : 0);

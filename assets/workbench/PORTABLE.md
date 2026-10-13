@@ -41,7 +41,13 @@
 4. **把审批落到 git 上**（这是唯一的强制执行手段）：
    - `30-decisions/**`、`40-plans/*ACC-*` 配 `CODEOWNERS`，必须 PR 审批才能合并；
    - 分支保护 + 必过检查：`node workbench/index/selftest.mjs`。
-5. 派生物不进版本库：见 `workbench/.gitignore`（默认忽略 `index/*.sqlite` 与 `index/dashboard.html`；若要向别人发布只读看板，再单独提交发布副本）。
+5. **拉取后自动重建索引**（推荐，一次配置）：
+   ```bash
+   git config core.hooksPath <workbench 路径>/.githooks
+   ```
+   `post-merge` / `post-checkout` 会在 pull、merge、切分支后自动重建；不想用 hook 就常驻 `wb watch`（**二者别同时开**）。
+   索引不进版本库，每台机器各自重建——见 SPEC §9.2。
+6. 派生物不进版本库：见 `workbench/.gitignore`（默认忽略 `index/*.sqlite` 与 `index/dashboard.html`；若要向别人发布只读看板，再单独提交发布副本）。
 
 ## 四、给不装 agent 的人看
 

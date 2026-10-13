@@ -34,6 +34,7 @@ for (const [src, dest] of TOP_FILES) copy('workbench/' + dest, join(SRC_WB, src)
 for (const f of readdirSync(join(SRC_WB, 'templates'))) if (f.endsWith('.md')) copy('workbench/templates/' + f, join(SRC_WB, 'templates', f));
 for (const f of SCRIPT_FILES) copy('workbench/index/' + f, join(SRC_WB, 'index', f));
 for (const d of FOLDER_STUBS) copy('workbench/' + d + '/README.md', join(SRC_WB, d, 'README.md'));
+for (const h of ['post-merge', 'post-checkout']) copy('workbench/githooks/' + h, join(SRC_WB, '.githooks', h));
 copy('skill/workbench/SKILL.md', SRC_SKILL);
 
 writeFileSync(join(ASSETS, 'manifest.json'), JSON.stringify({

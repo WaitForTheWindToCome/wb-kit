@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // workbench/index/build.mjs — 从 Markdown 派生 SQLite 索引 + 只读 web 看板
 // 零依赖（Node >= 22.5 的 node:sqlite）。用法：node workbench/index/build.mjs
-import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, statSync, renameSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -185,8 +186,18 @@ function walk(dir, acc = []) {
   }
   return acc;
 }
+// 指纹只覆盖"会成为记录"的文件（根目录的 SPEC/PORTABLE 等不进索引，也不应影响指纹）
+const mdFiles = walk(ROOT).filter(f => relative(ROOT, f).split('\\').join('/').includes('/'));
+const fingerprint = createHash('sha256')
+  .update(mdFiles.map(f => {
+    const s = statSync(f);
+    return relative(ROOT, f).split('\\').join('/') + ':' + s.size + ':' + Math.floor(s.mtimeMs);
+  }).join('\n'))
+  .digest('hex').slice(0, 12);
+const generatedAt = new Date().toISOString();
+
 const records = [];
-for (const file of walk(ROOT)) {
+for (const file of mdFiles) {
   const rel = relative(ROOT, file).split('\\').join('/');
   if (!rel.includes('/')) continue; // 根目录的 SPEC.md / README.md 不进索引
   const top = rel.split('/')[0];
@@ -217,7 +228,10 @@ records.sort((a, b) => String(a.id).localeCompare(String(b.id)));
 let sqliteInfo = 'skipped';
 try {
   const { DatabaseSync } = await import('node:sqlite');
-  const db = new DatabaseSync(join(HERE, 'workbench.sqlite'));
+  const DB = join(HERE, 'workbench.sqlite');
+  const DBT = DB + '.tmp';
+  try { rmSync(DBT, { force: true }); } catch {}
+  const db = new DatabaseSync(DBT);
   db.exec('DROP TABLE IF EXISTS records');
   db.exec('DROP TABLE IF EXISTS search');
   db.exec('CREATE TABLE records (id TEXT, kind TEXT, title TEXT, status TEXT, priority TEXT, project TEXT, owner TEXT, tags TEXT, verdict TEXT, updated TEXT, file TEXT, body TEXT)');
@@ -228,12 +242,20 @@ try {
   catch (e) { db.exec('CREATE VIRTUAL TABLE search USING fts5(id UNINDEXED, title, body)'); }
   const insF = db.prepare('INSERT INTO search VALUES (?,?,?)');
   for (const r of records) insF.run(r.id, r.title, r.body);
+  db.exec('DROP TABLE IF EXISTS meta');
+  db.exec('CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)');
+  const insM = db.prepare('INSERT INTO meta VALUES (?,?)');
+  insM.run('fingerprint', fingerprint);
+  insM.run('generated_at', generatedAt);
+  insM.run('record_count', String(records.length));
+  insM.run('builder', 'workbench-index/1');
   db.close();
+  renameSync(DBT, DB);
   sqliteInfo = records.length + ' rows, fts5=' + tok;
 } catch (e) { sqliteInfo = 'failed: ' + (e && e.message); }
 
 /* ---------------- HTML 看板 ---------------- */
-const payload = JSON.stringify({ generated: new Date().toISOString(), records, statusOrder: STATUS_ORDER, labels: { kind: KIND_LABEL, status: STATUS_LABEL, verdict: VERDICT_LABEL }, projects: Object.fromEntries(records.filter(r => r.kind === 'project').map(r => [r.id, r.title])) }).replace(/</g, '\\u003c');
+const payload = JSON.stringify({ generated: generatedAt, fingerprint, records, statusOrder: STATUS_ORDER, labels: { kind: KIND_LABEL, status: STATUS_LABEL, verdict: VERDICT_LABEL }, projects: Object.fromEntries(records.filter(r => r.kind === 'project').map(r => [r.id, r.title])) }).replace(/</g, '\\u003c');
 const css = [
 ':root{--bg:#0e1116;--panel:#161a22;--panel2:#1d2230;--line:#272e3b;--txt:#e6e9ef;--dim:#8b95a7;--accent:#4c8dff}',
 '*{box-sizing:border-box}',
@@ -274,7 +296,7 @@ const js = [
 'const D=JSON.parse(document.getElementById("data").textContent);',
 'const R=D.records;',
 'const KL=D.labels.kind,SL=D.labels.status,VL=D.labels.verdict;',
-'document.getElementById("gen").textContent="生成于 "+new Date(D.generated).toLocaleString("zh-CN");',
+'document.getElementById("gen").textContent="生成于 "+new Date(D.generated).toLocaleString("zh-CN")+" · 源指纹 "+D.fingerprint;',
 'const uniq=k=>[...new Set(R.map(r=>r[k]).filter(Boolean))];',
 'for(const p of uniq("project")){const o=document.createElement("option");o.value=p;o.textContent=(D.projects&&D.projects[p])||p;document.getElementById("fproj").appendChild(o)}',
 'for(const k of uniq("kind")){const o=document.createElement("option");o.value=k;o.textContent=KL[k]||k;document.getElementById("fkind").appendChild(o)}',
@@ -321,6 +343,8 @@ const html = [
 '<script>' + js + '</scr' + 'ipt></body></html>',
 ].join('\n');
 
-writeFileSync(join(HERE, 'dashboard.html'), html, 'utf8');
-console.log('records=' + records.length + '  sqlite=' + sqliteInfo);
+const HTML_TMP = join(HERE, '.dashboard.html.tmp');
+writeFileSync(HTML_TMP, html, 'utf8');
+renameSync(HTML_TMP, join(HERE, 'dashboard.html'));
+console.log('records=' + records.length + '  sqlite=' + sqliteInfo + '  fingerprint=' + fingerprint + '  at=' + generatedAt);
 console.log(records.map(r => r.kind + ':' + r.id + ':' + (r.status || '-')).join('\n'));

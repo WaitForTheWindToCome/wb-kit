@@ -44,6 +44,7 @@ function mapAsset(r, target, agent) {
   if (r.startsWith('workbench/')) {
     let inner = r.slice('workbench/'.length);
     if (inner === 'gitignore.txt') inner = '.gitignore';
+    if (inner.startsWith('githooks/')) inner = '.githooks/' + inner.slice('githooks/'.length);
     return [join(target, 'workbench', inner)];
   }
   if (r.startsWith('skill/')) {

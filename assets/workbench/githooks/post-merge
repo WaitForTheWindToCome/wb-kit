@@ -1,0 +1,9 @@
+#!/bin/sh
+# 每次 git pull/merge 后自动重建索引与看板（失败不阻塞 git 操作）
+# 安装： git config core.hooksPath <workbench>/.githooks
+HOOK_DIR=$(cd "$(dirname "$0")" && pwd)
+WB_DIR=$(dirname "$HOOK_DIR")
+if command -v node >/dev/null 2>&1 && [ -f "$WB_DIR/index/build.mjs" ]; then
+  node "$WB_DIR/index/build.mjs" >/dev/null 2>&1 || true
+fi
+exit 0
