@@ -35,6 +35,7 @@ for (const f of readdirSync(join(SRC_WB, 'templates'))) if (f.endsWith('.md')) c
 for (const f of SCRIPT_FILES) copy('workbench/index/' + f, join(SRC_WB, 'index', f));
 for (const d of FOLDER_STUBS) copy('workbench/' + d + '/README.md', join(SRC_WB, d, 'README.md'));
 for (const h of ['post-merge', 'post-checkout']) copy('workbench/githooks/' + h, join(SRC_WB, '.githooks', h));
+for (const c of ['start-dashboard.cmd', 'start-server.cmd']) copy('workbench/' + c, join(SRC_WB, c));
 copy('skill/workbench/SKILL.md', SRC_SKILL);
 
 // 版本文件：写进资产（新实例 init 时落 .wb-version），同时标注当前实例

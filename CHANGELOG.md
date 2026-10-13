@@ -2,6 +2,15 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 与[语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.2.2] — 2026-10-14
+
+### Added
+- **`workbench/start-dashboard.cmd`** —— 双击直接打开看板（纯静态网页，可点击/筛选/搜索，不需要任何服务）
+- **`workbench/start-server.cmd`** —— 双击起一个本地服务并在浏览器打开 `http://127.0.0.1:8799/index/dashboard.html`（可给同事用内网地址访问）
+
+### Why
+有人（合理但错误地）把"可视化"理解成"截个图给我看" —— 截图不能点、不能筛。看板本来就是**可交互的静态网页**，缺的只是一个双击入口。现在每个实例自带这两个入口。
+
 ## [0.2.1] — 2026-10-13
 
 ### Added
