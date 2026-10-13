@@ -16,9 +16,20 @@ Coding agents (Claude Code, Codex, DSH, …) are good at *writing code* and bad 
 
 One command scaffolds a plain-Markdown workbench plus an agent skill into any project. Your agent does the writing; you only approve and read. Nothing here is a platform, a service, or a database — it is a convention plus a read-only view.
 
+## Install
+
+wb-kit is **not on the npm registry yet** — install it straight from this repository:
+
 ```bash
-npx wb-kit init ./my-project          # scaffold the ledger + agent skill
+# run without installing anything
+npx github:WaitForTheWindToCome/wb-kit init ./my-project
+
+# or install globally
+npm i -g github:WaitForTheWindToCome/wb-kit
+wb init ./my-project
 ```
+
+Or download `wb-kit-0.1.0.tgz` from [Releases](https://github.com/WaitForTheWindToCome/wb-kit/releases) and run `npm i -g ./wb-kit-0.1.0.tgz`.
 
 ## Why
 

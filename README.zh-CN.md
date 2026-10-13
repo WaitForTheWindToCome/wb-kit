@@ -16,9 +16,20 @@
 
 一条命令，把一套纯 Markdown 工作台和一份 agent 技能，装进任意项目。写入由 agent 完成，你只审批和阅读。它不是平台、不是服务、不是数据库 —— 是**一套约定 + 一个只读视图**。
 
+## 安装
+
+wb-kit **还没有发布到 npm registry** —— 直接从本仓库安装：
+
 ```bash
-npx wb-kit init ./my-project
+# 不安装，直接跑
+npx github:WaitForTheWindToCome/wb-kit init ./my-project
+
+# 或全局安装
+npm i -g github:WaitForTheWindToCome/wb-kit
+wb init ./my-project
 ```
+
+也可以从 [Releases](https://github.com/WaitForTheWindToCome/wb-kit/releases) 下载 `wb-kit-0.1.0.tgz`，然后 `npm i -g ./wb-kit-0.1.0.tgz`。
 
 ## 为什么
 
