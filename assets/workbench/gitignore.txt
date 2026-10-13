@@ -1,0 +1,10 @@
+# 派生物：可随时重建，不进版本库
+index/*.sqlite
+index/dashboard.html
+index/preview.png
+
+# 编辑器/工具噪音
+.obsidian/workspace.json
+.obsidian/workspaces.json
+
+# 说明：如果要用 git 向同事发布只读看板，删掉上面 dashboard.html 那一行即可。

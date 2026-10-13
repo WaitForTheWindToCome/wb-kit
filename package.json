@@ -1,0 +1,19 @@
+{
+  "name": "wb-kit",
+  "version": "0.1.0",
+  "description": "An auditable decision ledger for AI-assisted engineering teams: scaffold a plain-Markdown workbench + agent skill into any project.",
+  "type": "module",
+  "bin": { "wb": "bin/wb.mjs" },
+  "files": ["bin", "assets", "README.md", "README.zh-CN.md", "CHANGELOG.md"],
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "sync": "node tools/sync-assets.mjs",
+    "test": "node tools/smoke-test.mjs"
+  },
+  "keywords": ["ai-agent", "claude-code", "spec-driven-development", "decision-log", "adr", "acceptance-criteria", "markdown", "workbench", "dsh", "developer-tools"],
+  "author": "WaitForTheWindToCome",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/WaitForTheWindToCome/wb-kit.git" },
+  "homepage": "https://github.com/WaitForTheWindToCome/wb-kit#readme",
+  "bugs": { "url": "https://github.com/WaitForTheWindToCome/wb-kit/issues" }
+}

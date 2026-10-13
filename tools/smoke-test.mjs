@@ -1,0 +1,72 @@
+// tools/smoke-test.mjs — 端到端冒烟：init → build → check → 幂等 → upgrade
+// 同时守住一条红线：assets/ 里绝不允许出现任何个人记录文件。
+//
+// 注意：子进程输出写进文件读取，而不是 piped stdio ——
+// 某些受限沙箱环境不允许打开命名管道，stdio: 'pipe' 会 EPERM；写文件在沙箱与 CI 中都可用。
+import { rmSync, mkdirSync, existsSync, readdirSync, openSync, closeSync, readFileSync } from 'node:fs';
+import { join, dirname, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const PKG = dirname(HERE);
+const CLI = join(PKG, 'bin', 'wb.mjs');
+const TMP = join(PKG, '.smoke');
+
+let fails = 0;
+const check = (name, ok, extra) => {
+  console.log((ok ? 'PASS  ' : 'FAIL  ') + name + (extra ? '  ' + extra : ''));
+  if (!ok) fails++;
+};
+const wb = (args, cwd = TMP) => {
+  const log = join(TMP, '.wb-out.log');
+  const fd = openSync(log, 'w');
+  const r = spawnSync(process.execPath, [CLI, ...args], { cwd, stdio: ['ignore', fd, fd] });
+  closeSync(fd);
+  return { code: r.status === null ? -1 : r.status, out: readFileSync(log, 'utf8') };
+};
+const step = (name, args, expect = 0, cwd = TMP) => {
+  const res = wb(args, cwd);
+  const ok = res.code === expect;
+  check(name, ok, ok ? '' : 'exit=' + res.code);
+  if (!ok) console.log('      --- 输出 ---\n' + res.out.split('\n').slice(0, 8).map(l => '      ' + l).join('\n'));
+  return res;
+};
+function walk(dir, base = dir, out = []) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, e.name);
+    if (e.isDirectory()) walk(p, base, out);
+    else out.push(relative(base, p).split('\\').join('/'));
+  }
+  return out;
+}
+
+rmSync(TMP, { recursive: true, force: true });
+mkdirSync(TMP, { recursive: true });
+
+// 1) 初始化（含 build）
+step('wb init --agent=both', ['init', '.', '--agent=both']);
+for (const f of ['workbench/SPEC.md', 'workbench/index/dashboard.html', 'workbench/index/workbench.sqlite', '.dsh/skills/workbench/SKILL.md', '.claude/skills/workbench/SKILL.md']) {
+  check('生成 ' + f, existsSync(join(TMP, f)));
+}
+
+// 2) 自检
+step('wb check', ['check', '.']);
+
+// 3) 幂等：重复 init 不报错、不覆盖
+step('重复 init 幂等', ['init', '.']);
+const again = wb(['init', '.']);
+check('重复 init 跳过已存在文件', /跳过 [1-9]/.test(again.out));
+
+// 4) 升级预览不改写
+step('wb upgrade --dry-run', ['upgrade', '.', '--dry-run']);
+
+// 5) 红线：assets 只允许规范/模板/脚本/技能
+const ALLOWED = new RegExp('^(manifest\\.json|skill/workbench/SKILL\\.md|workbench/(SPEC|README|PORTABLE)\\.md|workbench/gitignore\\.txt|workbench/templates/[^/]+\\.md|workbench/index/(build|watch|selftest)\\.mjs|workbench/(00-inbox|10-items|20-research|30-decisions|40-plans|50-exec|60-verify|70-knowledge|80-archive|projects|templates|index|log)/README\\.md)$');
+const assets = walk(join(PKG, 'assets'));
+const bad = assets.filter(f => !ALLOWED.test(f));
+check('assets 白名单（无个人记录）', bad.length === 0, bad.length ? bad.slice(0, 3).join(', ') : assets.length + ' 个文件');
+
+rmSync(TMP, { recursive: true, force: true });
+console.log(fails ? 'smoke-test FAILED (' + fails + ')' : 'smoke-test OK');
+process.exit(fails ? 1 : 0);
