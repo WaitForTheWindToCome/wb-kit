@@ -6,7 +6,7 @@
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D22.5-brightgreen.svg)](https://nodejs.org)
 
-[中文说明](README.zh-CN.md)
+[中文说明](README.zh-CN.md) · **[Live demo](https://waitforthewindtocome.github.io/wb-kit/)** — the dashboard generated from [`examples/records/`](examples/records/)
 
 ---
 

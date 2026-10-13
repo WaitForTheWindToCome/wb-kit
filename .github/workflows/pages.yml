@@ -30,6 +30,7 @@ jobs:
           node bin/wb.mjs init .demo --agent=none --no-build
           cp -r examples/records/* .demo/workbench/
           node bin/wb.mjs build .demo
+          cp .demo/workbench/index/dashboard.html .demo/workbench/index/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

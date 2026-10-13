@@ -6,7 +6,7 @@
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D22.5-brightgreen.svg)](https://nodejs.org)
 
-[English](README.md)
+[English](README.md) · **[在线看板 demo](https://waitforthewindtocome.github.io/wb-kit/)** —— 由 [`examples/records/`](examples/records/) 里的示例台账生成
 
 ---
 
