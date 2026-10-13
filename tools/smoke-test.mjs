@@ -50,8 +50,9 @@ for (const f of ['workbench/SPEC.md', 'workbench/index/dashboard.html', 'workben
   check('生成 ' + f, existsSync(join(TMP, f)));
 }
 
-// 2) 自检
-step('wb check', ['check', '.']);
+// 2) 自检（含结构校验）
+const chk = step('wb check', ['check', '.']);
+check('wb check 内含结构校验（validate OK）', /validate OK/.test(chk.out));
 
 // 3) 幂等：重复 init 不报错、不覆盖
 step('重复 init 幂等', ['init', '.']);
@@ -62,7 +63,7 @@ check('重复 init 跳过已存在文件', /跳过 [1-9]/.test(again.out));
 step('wb upgrade --dry-run', ['upgrade', '.', '--dry-run']);
 
 // 5) 红线：assets 只允许规范/模板/脚本/技能
-const ALLOWED = new RegExp('^(manifest\\.json|skill/workbench/SKILL\\.md|workbench/(SPEC|README|PORTABLE)\\.md|workbench/gitignore\\.txt|workbench/templates/[^/]+\\.md|workbench/index/(build|watch|selftest)\\.mjs|workbench/githooks/(post-merge|post-checkout)|workbench/(00-inbox|10-items|20-research|30-decisions|40-plans|50-exec|60-verify|70-knowledge|80-archive|projects|templates|index|log)/README\\.md)$');
+const ALLOWED = new RegExp('^(manifest\\.json|skill/workbench/SKILL\\.md|workbench/(SPEC|README|PORTABLE)\\.md|workbench/gitignore\\.txt|workbench/wb-version\\.txt|workbench/templates/[^/]+\\.md|workbench/index/(build|watch|selftest|validate)\\.mjs|workbench/githooks/(post-merge|post-checkout)|workbench/(00-inbox|10-items|20-research|30-decisions|40-plans|50-exec|60-verify|70-knowledge|80-archive|projects|templates|index|log)/README\\.md)$');
 const assets = walk(join(PKG, 'assets'));
 const bad = assets.filter(f => !ALLOWED.test(f));
 check('assets 白名单（无个人记录）', bad.length === 0, bad.length ? bad.slice(0, 3).join(', ') : assets.length + ' 个文件');

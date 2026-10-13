@@ -17,5 +17,7 @@ jobs:
         run: node --check bin/wb.mjs
       - name: Smoke test (init -> build -> check -> upgrade)
         run: node tools/smoke-test.mjs
+      - name: Ledger self-check (init -> validate -> render)
+        run: node tools/smoke-test.mjs
       - name: Package preview
         run: npm pack --dry-run

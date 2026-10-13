@@ -15,7 +15,7 @@ const pkg = JSON.parse(readFileSync(join(PKG, 'package.json'), 'utf8'));
 // 目录说明（每个目录的 README.md 是脚手架的一部分）
 const FOLDER_STUBS = ['00-inbox','10-items','20-research','30-decisions','40-plans','50-exec','60-verify','70-knowledge','80-archive','projects','templates','index','log'];
 const TOP_FILES = [['SPEC.md','SPEC.md'],['README.md','README.md'],['PORTABLE.md','PORTABLE.md'],['.gitignore','gitignore.txt']];
-const SCRIPT_FILES = ['build.mjs','watch.mjs','selftest.mjs'];
+const SCRIPT_FILES = ['build.mjs','watch.mjs','selftest.mjs','validate.mjs'];
 
 rmSync(ASSETS, { recursive: true, force: true });
 const files = [];
@@ -36,6 +36,10 @@ for (const f of SCRIPT_FILES) copy('workbench/index/' + f, join(SRC_WB, 'index',
 for (const d of FOLDER_STUBS) copy('workbench/' + d + '/README.md', join(SRC_WB, d, 'README.md'));
 for (const h of ['post-merge', 'post-checkout']) copy('workbench/githooks/' + h, join(SRC_WB, '.githooks', h));
 copy('skill/workbench/SKILL.md', SRC_SKILL);
+
+// 版本文件：写进资产（新实例 init 时落 .wb-version），同时标注当前实例
+put('workbench/wb-version.txt', pkg.version + '\n');
+writeFileSync(join(SRC_WB, '.wb-version'), pkg.version + '\n', 'utf8');
 
 writeFileSync(join(ASSETS, 'manifest.json'), JSON.stringify({
   name: pkg.name, version: pkg.version, generatedAt: new Date().toISOString(), source: SRC_WB, count: files.length, files

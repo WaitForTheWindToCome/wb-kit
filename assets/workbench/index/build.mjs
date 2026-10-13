@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 const BT = String.fromCharCode(96);
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = dirname(HERE);
-const SKIP_DIRS = new Set(['index', 'templates', 'node_modules', 'artifacts', 'spikes']);
+const SKIP_DIRS = new Set(['index', 'templates', 'node_modules', 'artifacts', 'spikes', 'log']);
 const KIND = { '00-inbox':'inbox','10-items':'item','20-research':'research','30-decisions':'decision','40-plans':'plan','50-exec':'exec','60-verify':'verify','70-knowledge':'knowledge','80-archive':'archive','projects':'project' };
 const KIND_LABEL = { inbox:'收件箱', item:'需求条目', research:'调研报告', decision:'决策记录', plan:'开发计划', exec:'执行记录', verify:'验收记录', knowledge:'知识沉淀', archive:'已归档', project:'项目', other:'其他' };
 const STATUS_LABEL = { captured:'已捕获', triaged:'已初筛', clarify:'待澄清', spike:'低成本验证', researching:'调研中', backlog:'待办', watch:'观察中', decided:'已决策', planned:'已计划', ready:'可派发', executing:'执行中', verifying:'验收中', accepted:'已通过', rework:'返工中', rejected:'已否决', archived:'已归档', draft:'草稿', complete:'已完成', proposed:'待审批', active:'进行中', paused:'已暂停' };

@@ -261,6 +261,7 @@ decided → planned → ready → executing → verifying ─┬→ accepted →
 - `40-plans/PLAN-*` 只写里程碑、依赖、资源与关键路径；任务清单引用 Spec Kit 的 `tasks.md` 路径。
 - `40-plans/ACC-*`（验收标准）以 workbench 为准；Spec Kit 的 checklist 必须回链 ACC 编号。
 - 执行证据只落 `50-exec/artifacts/`，验收结论只落 `60-verify/`。
+- **命名冲突裁定（来自 Spec Kit assess 的 B5）**：`research.md` 在三处含义不同 —— 本台账 `20-research/RS-*.md`（**决策依据**）、`.specify/assessments/<slug>/research.md`（评估过程）、`specs/<feature>/research.md`（实现期调研）。**三者并存、互不替代**，引用一律写全路径；凡"该不该做"的结论以本台账为准。任何情况下都不要再引入第四套命名。
 
 ## 12. 治理与变更
 

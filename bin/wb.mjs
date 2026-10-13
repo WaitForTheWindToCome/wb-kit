@@ -45,6 +45,7 @@ function mapAsset(r, target, agent) {
     let inner = r.slice('workbench/'.length);
     if (inner === 'gitignore.txt') inner = '.gitignore';
     if (inner.startsWith('githooks/')) inner = '.githooks/' + inner.slice('githooks/'.length);
+    if (inner === 'wb-version.txt') inner = '.wb-version';
     return [join(target, 'workbench', inner)];
   }
   if (r.startsWith('skill/')) {
@@ -104,12 +105,18 @@ function cmdInit() {
 }
 
 function cmdUpgrade() {
+  const verFile = join(targetDir, 'workbench', '.wb-version');
+  const oldVer = existsSync(verFile) ? readFileSync(verFile, 'utf8').trim() : '(未记录，视为 0.1.0 之前)';
   console.log('wb-kit v' + META.version + ' → 更新规范/模板/脚本到 ' + targetDir + (argv['dry-run'] ? '（dry-run）' : ''));
+  console.log('实例规范版本：' + oldVer + ' → ' + META.version);
   const isUpgradable = r =>
     UPGRADABLE.includes(r) || r.startsWith('workbench/templates/') || r.startsWith('workbench/index/');
   const r = copyAssets({ target: targetDir, agent, force: true, only: isUpgradable, dryRun: !!argv['dry-run'] });
   console.log('\n' + (argv['dry-run'] ? '待更新 ' + r.changed + ' 个文件' : '已更新 ' + r.wrote + ' 个文件，' + r.skipped + ' 个无变化'));
   console.log('记录文件（00-inbox…80-archive、projects/）永远不会被 upgrade 触碰。');
+  if (!argv['dry-run'] && oldVer !== META.version) {
+    console.log('迁移提示：规范/模板/脚本已更新；结构性变更见 CHANGELOG.md 对应版本小节。');
+  }
   return 0;
 }
 
@@ -146,13 +153,16 @@ else if (cmd === 'version' || argv.version) console.log(META.version);
 else if (cmd === 'build') code = run(join(targetDir, 'workbench', 'index', 'build.mjs'), targetDir);
 else if (cmd === 'watch') code = run(join(targetDir, 'workbench', 'index', 'watch.mjs'), targetDir);
 else if (cmd === 'check') {
+  console.log('— 结构校验（frontmatter / ID / links / 门禁）—');
+  const v = run(join(targetDir, 'workbench', 'index', 'validate.mjs'), targetDir);
+  console.log('\n— 渲染自检（看板 / 索引 / 陈旧检测）—');
   const ok = run(join(targetDir, 'workbench', 'index', 'selftest.mjs'), targetDir);
-  const need = ['SPEC.md', 'templates/item.md', 'index/build.mjs'];
+  const need = ['SPEC.md', 'templates/item.md', 'index/build.mjs', 'index/validate.mjs', '.githooks/post-merge'];
   for (const n of need) {
     const p = join(targetDir, 'workbench', n);
     console.log((existsSync(p) ? '  ok      ' : '  MISSING ') + 'workbench/' + n);
   }
-  code = ok;
+  code = (ok !== 0 || v !== 0) ? 1 : 0;
 } else { console.log('未知命令: ' + cmd + '\n'); code = cmdHelp() || 1; }
 } catch (e) { console.error('错误: ' + ((e && e.message) || e)); process.exit(1); }
 process.exit(code);
