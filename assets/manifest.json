@@ -1,9 +1,9 @@
 {
   "name": "wb-kit",
-  "version": "0.2.0",
-  "generatedAt": "2026-10-13T14:53:42.069Z",
+  "version": "0.2.1",
+  "generatedAt": "2026-10-13T15:18:32.912Z",
   "source": "C:\\Users\\18413\\Documents\\deepseek-harness\\default-workspace\\workbench",
-  "count": 35,
+  "count": 36,
   "files": [
     "workbench/SPEC.md",
     "workbench/README.md",
@@ -23,6 +23,7 @@
     "workbench/index/watch.mjs",
     "workbench/index/selftest.mjs",
     "workbench/index/validate.mjs",
+    "workbench/index/test-validate.mjs",
     "workbench/00-inbox/README.md",
     "workbench/10-items/README.md",
     "workbench/20-research/README.md",

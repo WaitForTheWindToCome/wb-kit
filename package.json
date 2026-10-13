@@ -1,10 +1,10 @@
 {
   "name": "wb-kit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "An auditable decision ledger for AI-assisted engineering teams: scaffold a plain-Markdown workbench + agent skill into any project.",
   "type": "module",
   "bin": { "wb": "bin/wb.mjs" },
-  "files": ["bin", "assets", "README.md", "README.zh-CN.md", "CHANGELOG.md"],
+  "files": ["bin", "assets", "docs", "README.md", "README.zh-CN.md", "CHANGELOG.md"],
   "engines": { "node": ">=22.5" },
   "scripts": {
     "sync": "node tools/sync-assets.mjs",

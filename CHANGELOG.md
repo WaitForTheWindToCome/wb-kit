@@ -2,6 +2,16 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 与[语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.2.1] — 2026-10-13
+
+### Added
+- `index/test-validate.mjs` —— **校验器自己的回归测试**（6 个用例、123 条断言；断言"独立复核实际 ERROR 行数与退出码"，不信任摘要行）
+- `docs/walkthrough.md` —— 从想法到交付的十步闭环与常见问题
+- CI 新增一步：对**随包发布的校验器**跑它自己的测试
+
+### Notes
+- 该测试经过**变异验证**：静默禁用"ID 重复"检查后测试必须报红（实测 exit=1 并指出"实际 0 行"），恢复后 exit=0。详见仓库内 EX-2026-0003 / VR-2026-0002。
+
 ## [0.2.0] — 2026-10-13
 
 ### Added
