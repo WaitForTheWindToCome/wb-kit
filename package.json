@@ -1,6 +1,6 @@
 {
   "name": "wb-kit",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "An auditable decision ledger for AI-assisted engineering teams: scaffold a plain-Markdown workbench + agent skill into any project.",
   "type": "module",
   "bin": { "wb": "bin/wb.mjs" },
