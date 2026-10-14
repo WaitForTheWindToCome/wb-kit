@@ -166,12 +166,12 @@ type: bug
 `,
     },
     expect: { docs: 2, errors: 1, warns: 0, code: 1, verdict: 'FAILED' },
-    wantErrors: [{ label: '报「ID 重复」并指明首次出现位置', re: /: ID 重复（已出现在 10-items\/[^）]+\.md）$/ }],
+    wantErrors: [{ label: '报「ID 冲突」并列出冲突文件', re: /ID 冲突：.*的同类型文件多于一个.*alpha\.md.*beta\.md/ }],
     rejectErrors: [
       { label: '不得误报「非法 status」', re: /非法 status/ },
       { label: '不得误报「非法 type」', re: /非法 type/ },
     ],
-    mutation: { needle: 'ID 重复', protects: 'ID 重复' },
+    mutation: { needle: 'ID 冲突', protects: 'ID 冲突' },
   },
   {
     id: '02-bad-status',
@@ -200,7 +200,7 @@ type: improvement
     wantErrors: [{ label: '报「非法 status "nonsense"」', re: /: 非法 status "nonsense"$/ }],
     rejectErrors: [
       { label: '合法状态 backlog 不得被判非法', re: /非法 status "backlog"/ },
-      { label: '不得误报「ID 重复」', re: /ID 重复/ },
+      { label: '不得误报「ID 冲突」', re: /ID 冲突/ },
     ],
     mutation: { needle: '非法 status', protects: '非法 status' },
   },

@@ -106,11 +106,10 @@ for (const r of records) {
   if (r.kind === 'item' && !fm.status) errors.push(r.rel + ': 条目缺少 status');
   if (r.kind === 'item' && fm.type && !ALLOWED_TYPE.has(fm.type)) errors.push(r.rel + ': 非法 type "' + fm.type + '"');
   if (fm.id) {
-    if (ids.has(fm.id)) errors.push(r.rel + ': ID 重复（已出现在 ' + ids.get(fm.id) + '）');
-    else ids.set(fm.id, r.rel);
+    if (!ids.has(fm.id)) ids.set(fm.id, r.rel);   // 重复由下方"跨文件 ID 冲突"统一报出，避免报两遍
     noteId(fm.id, r.rel);
   } else if (r.kind !== 'inbox') {
-    const m = ID_RE.exec(rel.split('/').pop());
+    const m = ID_RE.exec(r.rel.split('/').pop());
     if (m) noteId(m[1], r.rel);
   }
 }
