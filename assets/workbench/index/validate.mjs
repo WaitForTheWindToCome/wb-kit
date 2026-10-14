@@ -62,6 +62,20 @@ function walk(dir, acc = []) {
   return acc;
 }
 
+// 扫描所有文件（含 .html 等非 md 交付物），用于跨文件 ID 冲突检测
+function walkAny(dir, acc = []) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (e.name.startsWith('.')) continue;
+    const p = join(dir, e.name);
+    if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name)) walkAny(p, acc); }
+    else {
+      const rel = relative(ROOT, p).split('\\').join('/');
+      if (rel.includes('/')) acc.push(rel);
+    }
+  }
+  return acc;
+}
+
 const records = [];
 for (const f of walk(ROOT)) {
   const rel = relative(ROOT, f).split('\\').join('/');
@@ -74,6 +88,13 @@ for (const f of walk(ROOT)) {
 
 const errors = [], warns = [];
 const ids = new Map();
+const idOwners = new Map();   // ID -> 文件列表（跨 md/html 检测冲突）
+function noteId(id, file) {
+  if (!id) return;
+  if (!idOwners.has(id)) idOwners.set(id, []);
+  if (!idOwners.get(id).includes(file)) idOwners.get(id).push(file);
+}
+const ID_RE = /^((?:WB|RS|PLAN|ACC|EX|VR|KB)-\d{4}-\d{4}|ADR-\d{4})/;
 for (const r of records) {
   const fm = r.fm;
   const id = fm.id || (r.kind === 'inbox' ? '(inbox 无 id)' : '');
@@ -86,6 +107,10 @@ for (const r of records) {
   if (fm.id) {
     if (ids.has(fm.id)) errors.push(r.rel + ': ID 重复（已出现在 ' + ids.get(fm.id) + '）');
     else ids.set(fm.id, r.rel);
+    noteId(fm.id, r.rel);
+  } else if (r.kind !== 'inbox') {
+    const m = ID_RE.exec(rel.split('/').pop());
+    if (m) noteId(m[1], r.rel);
   }
 }
 
@@ -120,6 +145,27 @@ for (const r of records) {
   if (r.kind === 'decision' && status === 'accepted' && !fm.approved_by) warns.push(r.rel + ': status=accepted 但没有 approved_by（审批未留痕）');
   if (r.kind === 'verify' && fm.verifier && fm.executor && fm.verifier === fm.executor) errors.push(r.rel + ': 验收者 = 执行者（SPEC 禁止自验收）');
   if (r.kind === 'exec' && status === 'succeeded' && !fm.artifacts_dir) warns.push(r.rel + ': 执行成功但没有 artifacts_dir（证据未锚定）');
+}
+
+// 跨文件 ID 冲突：同一 ID 出现在多个交付物里（含 .html 页面、附件）→ 报警
+for (const f of walkAny(ROOT)) {
+  const base = f.split('/').pop();
+  if (base.toUpperCase() === 'README.MD') continue;
+  const m = ID_RE.exec(base);
+  if (m) noteId(m[1], f);
+}
+for (const [id, files] of idOwners) {
+  const uniq = [...new Set(files)];
+  if (uniq.length > 1) errors.push('ID 冲突：' + id + ' 同时用于 ' + uniq.length + ' 个文件 → ' + uniq.join(' , '));
+}
+
+// 状态落后于产物：已有调研/计划/执行/验收产物，状态却还停在早期阶段
+const EARLY = new Set(['captured', 'triaged', 'clarify', 'backlog', 'watch', 'spike']);
+for (const r of records) {
+  if (r.kind !== 'item' || !EARLY.has(r.fm.status || '')) continue;
+  const a = r.fm.artifacts || '';
+  const has = /(research|decision|plan|acceptance|exec|verify):\s*(?!null|\[\])/.test(a);
+  if (has) warns.push(r.rel + ': 状态落后于产物（已有 ' + a.replace(/\s+/g, ' ').slice(0, 90) + '），请对齐状态');
 }
 
 console.log('校验 ' + records.length + ' 份文档：' + errors.length + ' 个错误，' + warns.length + ' 个警告');

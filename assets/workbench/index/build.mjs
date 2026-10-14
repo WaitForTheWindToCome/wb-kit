@@ -11,8 +11,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = dirname(HERE);
 const SKIP_DIRS = new Set(['index', 'templates', 'node_modules', 'artifacts', 'spikes', 'log']);
 const KIND = { '00-inbox':'inbox','10-items':'item','20-research':'research','30-decisions':'decision','40-plans':'plan','50-exec':'exec','60-verify':'verify','70-knowledge':'knowledge','80-archive':'archive','projects':'project' };
-const KIND_LABEL = { inbox:'收件箱', item:'需求条目', research:'调研报告', decision:'决策记录', plan:'开发计划', exec:'执行记录', verify:'验收记录', knowledge:'知识沉淀', archive:'已归档', project:'项目', other:'其他' };
-const STATUS_LABEL = { captured:'已捕获', triaged:'已初筛', clarify:'待澄清', spike:'低成本验证', researching:'调研中', backlog:'待办', watch:'观察中', decided:'已决策', planned:'已计划', ready:'可派发', executing:'执行中', verifying:'验收中', accepted:'已通过', rework:'返工中', rejected:'已否决', archived:'已归档', draft:'草稿', complete:'已完成', proposed:'待审批', active:'进行中', paused:'已暂停' };
+const KIND_LABEL = { page:'页面原型', inbox:'收件箱', item:'需求条目', research:'调研报告', decision:'决策记录', plan:'开发计划', exec:'执行记录', verify:'验收记录', knowledge:'知识沉淀', archive:'已归档', project:'项目', other:'其他' };
+const STATUS_LABEL = { page:'页面原型', captured:'已捕获', triaged:'已初筛', clarify:'待澄清', spike:'低成本验证', researching:'调研中', backlog:'待办', watch:'观察中', decided:'已决策', planned:'已计划', ready:'可派发', executing:'执行中', verifying:'验收中', accepted:'已通过', rework:'返工中', rejected:'已否决', archived:'已归档', draft:'草稿', complete:'已完成', proposed:'待审批', active:'进行中', paused:'已暂停' };
 const VERDICT_LABEL = { research:'进入研究', clarify:'补充信息', spike:'低成本验证', backlog:'纳入待办', watch:'观察', archive:'归档放弃' };
 const STATUS_ORDER = ['captured','triaged','clarify','spike','researching','backlog','watch','decided','planned','ready','executing','verifying','accepted','rework','rejected','archived','draft','complete','proposed','active','paused'];
 
@@ -202,8 +202,21 @@ function walk(dir, acc = []) {
 }
 // 指纹只覆盖"会成为记录"的文件（根目录的 SPEC/PORTABLE 等不进索引，也不应影响指纹）
 const mdFiles = walk(ROOT).filter(f => relative(ROOT, f).split('\\').join('/').includes('/'));
+// .html 页面/原型也是一等交付物：必须能被索引、能在看板上看见（ADR-0005）
+const htmlFiles = (function walkHtml(dir, acc = []) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (e.name.startsWith('.')) continue;
+    const p = join(dir, e.name);
+    if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name)) walkHtml(p, acc); }
+    else if (e.name.toLowerCase().endsWith('.html')) {
+      const rel = relative(ROOT, p).split('\\').join('/');
+      if (rel.includes('/')) acc.push(p);
+    }
+  }
+  return acc;
+})(ROOT);
 const fingerprint = createHash('sha256')
-  .update(mdFiles.map(f => {
+  .update([...mdFiles, ...htmlFiles].map(f => {
     const s = statSync(f);
     return relative(ROOT, f).split('\\').join('/') + ':' + s.size + ':' + Math.floor(s.mtimeMs);
   }).join('\n'))
@@ -259,6 +272,33 @@ for (const file of mdFiles) {
     html: mdToHtml(body),
   });
 }
+// —— 页面记录：HTML 页面/原型（正文不渲染，给可点开的链接）——
+for (const file of htmlFiles) {
+  const rel = relative(ROOT, file).split('\\').join('/');
+  const base = rel.split('/').pop().replace(/\.html$/i, '');
+  const head = readFileSync(file, 'utf8').slice(0, 4000);
+  const title = (/<title>([^<]{1,120})<\/title>/i.exec(head) || [])[1] || base;
+  const idm = /^((?:WB|RS|PLAN|ACC|EX|VR|KB)-\d{4}-\d{4}|ADR-\d{4})/.exec(base);
+  const st = statSync(file);
+  const md = '> **HTML 页面/原型**（看板不渲染其正文）\n\n**打开页面**：[' + base + '.html](../' + encodeURI(rel) + ')\n\n> 想要 URL：运行 workbench/start-server.cmd（或 python -m http.server 8799 --directory workbench），然后访问 http://127.0.0.1:8799/' + rel + '\n';
+  records.push({
+    id: idm ? idm[1] : base,
+    kind: 'page',
+    title,
+    status: 'page',
+    priority: null,
+    project: null,
+    owner: null,
+    tags: [],
+    verdict: null,
+    updated: new Date(st.mtimeMs).toISOString(),
+    file: rel,
+    body: md,
+    files: [{ path: rel, name: base + '.html', size: st.size }],
+    html: mdToHtml(md),
+  });
+}
+
 records.sort((a, b) => String(a.id).localeCompare(String(b.id)));
 
 /* ---------------- SQLite 索引（派生物，可删可重建） ---------------- */
@@ -370,6 +410,7 @@ const js = [
 
 const html = [
 '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">',
+'<meta http-equiv="cache-control" content="no-store">',
 '<meta name="viewport" content="width=device-width,initial-scale=1">',
 '<title>Workbench 看板</title><style>' + css + '</style></head><body>',
 '<header><h1>Workbench 看板</h1><span class="badge ro">只读视图 · 由 Markdown 生成</span><span class="badge" id="gen"></span><span class="spacer"></span>',

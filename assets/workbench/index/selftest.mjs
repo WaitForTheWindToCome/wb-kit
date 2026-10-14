@@ -35,13 +35,13 @@ const checks = [
 ];
 // ---- 陈旧检测：索引必须对应当前版本的源文件 ----
 const ROOT = dirname(HERE);
-const SKIP = new Set(['index', 'templates', 'node_modules', 'artifacts', 'spikes']);
+const SKIP = new Set(['index', 'templates', 'node_modules', 'artifacts', 'spikes', 'log']);
 function walkMd(dir, acc = []) {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
     if (e.name.startsWith('.')) continue;
     const p = join(dir, e.name);
     if (e.isDirectory()) { if (!SKIP.has(e.name)) walkMd(p, acc); }
-    else if (e.name.endsWith('.md') && e.name.toUpperCase() !== 'README.MD') {
+    else if ((e.name.endsWith('.md') && e.name.toUpperCase() !== 'README.MD') || e.name.toLowerCase().endsWith('.html')) {
       if (relative(ROOT, p).split('\\').join('/').includes('/')) acc.push(p);
     }
   }
