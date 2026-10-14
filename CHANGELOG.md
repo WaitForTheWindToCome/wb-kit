@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- `templates/verify.md`：验收记录现在同时给 `status`（驱动看板状态机）与 `verdict`（语义标签）。此前模板只有 `verdict`，导致验收记录在看板上显示为"无状态"、且不会被 `wb status` 计入终态
+
 ## [0.4.3] — 2026-10-14
 
 ### Fixed

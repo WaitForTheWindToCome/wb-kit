@@ -4,7 +4,8 @@ item: WB-YYYY-NNNN
 acceptance: ACC-YYYY-NNNN
 executor: claude
 verifier: dsh-lead           # 必须 ≠ executor，且未参与实现
-verdict: pending             # pass | fail | partial | blocked
+status: pending              # 驱动看板状态：pending | pass | fail | partial（终态）
+verdict: pending             # 语义标签，与 status 保持一致：pass | fail | partial | blocked
 artifact_hashes: {}
 verified_at: 
 ---
