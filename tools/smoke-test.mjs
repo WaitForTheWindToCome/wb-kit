@@ -3,7 +3,7 @@
 //
 // 注意：子进程输出写进文件读取，而不是 piped stdio ——
 // 某些受限沙箱环境不允许打开命名管道，stdio: 'pipe' 会 EPERM；写文件在沙箱与 CI 中都可用。
-import { rmSync, mkdirSync, existsSync, readdirSync, openSync, closeSync, readFileSync } from 'node:fs';
+import { rmSync, mkdirSync, existsSync, readdirSync, openSync, closeSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -67,6 +67,26 @@ const ALLOWED = new RegExp('^(manifest\\.json|skill/workbench/SKILL\\.md|workben
 const assets = walk(join(PKG, 'assets'));
 const bad = assets.filter(f => !ALLOWED.test(f));
 check('assets 白名单（无个人记录）', bad.length === 0, bad.length ? bad.slice(0, 3).join(', ') : assets.length + ' 个文件');
+
+// 6) 版本一致性：assets 的版本戳必须等于 package.json（先 sync 后 bump 就会陈旧 —— 0.5.0 的真实缺陷）
+const pkgJson = JSON.parse(readFileSync(join(PKG, 'package.json'), 'utf8'));
+const assetVer = readFileSync(join(PKG, 'assets', 'workbench', 'wb-version.txt'), 'utf8').trim();
+const manifest = JSON.parse(readFileSync(join(PKG, 'assets', 'manifest.json'), 'utf8'));
+check('assets/wb-version.txt == package.json', assetVer === pkgJson.version, assetVer + ' vs ' + pkgJson.version);
+check('assets/manifest.json.version == package.json', manifest.version === pkgJson.version, manifest.version + ' vs ' + pkgJson.version);
+const missing = manifest.files.filter(f => !existsSync(join(PKG, 'assets', f)));
+check('manifest 列出的文件都真实存在', missing.length === 0, missing.slice(0, 3).join(', '));
+
+// 7) 老实例升级：新交付物必须补发，记录文件绝不能被碰
+const RECORD = join(TMP, 'workbench', '10-items', 'WB-2026-9999-probe.md');
+writeFileSync(RECORD, '---\nid: WB-2026-9999\nstatus: captured\n---\n\n探针：upgrade 不许动我\n', 'utf8');
+writeFileSync(join(TMP, 'workbench', '.wb-version'), '0.0.1\n', 'utf8');
+for (const f of ['workbench/bin/dispatch.mjs', 'workbench/LEAD-MODE.md']) rmSync(join(TMP, f), { force: true });
+step('老实例 wb upgrade', ['upgrade', '.']);
+for (const f of ['workbench/bin/dispatch.mjs', 'workbench/LEAD-MODE.md']) check('upgrade 补发 ' + f, existsSync(join(TMP, f)));
+const verNow = readFileSync(join(TMP, 'workbench', '.wb-version'), 'utf8').trim();
+check('upgrade 写回 .wb-version', verNow === pkgJson.version, verNow);
+check('upgrade 不触碰记录文件', existsSync(RECORD) && /探针/.test(readFileSync(RECORD, 'utf8')));
 
 rmSync(TMP, { recursive: true, force: true });
 console.log(fails ? 'smoke-test FAILED (' + fails + ')' : 'smoke-test OK');

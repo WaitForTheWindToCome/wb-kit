@@ -4,3 +4,6 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+
+# 维护现场（含 GitHub token），永不入库
+.publish/

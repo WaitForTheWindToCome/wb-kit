@@ -36,7 +36,7 @@ whenToUse: 用户提到工作台、需求入库、清洗需求、需求评估、
 | "调研 X" | `20-research/RS-*.md`：结论先行，来源清单，严格区分已证实/推断/待验证；能实验就实验 |
 | "出方案 / 怎么选" | `30-decisions/ADR-*.md`：≥2 备选、推荐理由、**被放弃方案理由**、风险、**重估触发条件**；状态 proposed，**等人批** |
 | "出计划" | `40-plans/PLAN-*.md` + 同批产出 `40-plans/ACC-*.md`（验收先于实现）|
-| "派给 Claude Code" | `50-exec/EX-*.md` 写自包含任务包（背景/目标/写域/验收/自证），再用 `.crew/bin/crew.ps1 -Action run -Task <EX-id>` 派发；结果与日志回填 |
+| "派活 / 派给 agent" | `50-exec/EX-*.md` 写自包含任务包（背景/目标/写域/验收/自证），再用 `node workbench/bin/dispatch.mjs --task workbench/50-exec/tasks/T-XXX.md --tool claude|codex|opencode|zcode|custom --cwd <仓库>` 派发（工具无关；同一工作流复用会话，原始输出落 `50-exec/artifacts/dispatch/`）；结果与日志回填 |
 | "给我看看 / 可视化" | **给可访问入口，不给截图**：必须包含 ①可直接打开的文件路径 ②需要 URL 时用 `workbench\start-server.cmd`（或 `python -m http.server 8799 --directory workbench`）并给出 http://127.0.0.1:8799/… 。**截图不算交付**（ADR-0005）。 |
 | "验收 / 过没过" | `60-verify/VR-*.md`：逐条对照 ACC，证据到行号，关键命令自己复跑；**执行者不得自验收** |
 | "沉淀 / 复盘" | `70-knowledge/KB-*.md`，条目转 `80-archive/` |

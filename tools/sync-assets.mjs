@@ -1,14 +1,25 @@
 // tools/sync-assets.mjs — 从正在使用的 workbench 实例抽取"泛用资产"到 assets/
 // 白名单复制：只取规范/模板/脚本/技能/目录说明，绝不带走任何记录文件。
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, rmSync, existsSync, statSync, copyFileSync } from 'node:fs';
-import { join, dirname, relative } from 'node:path';
+import { join, dirname, relative, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PKG = dirname(HERE);
-const WS = dirname(dirname(PKG));
-const SRC_WB = join(WS, 'workbench');
-const SRC_SKILL = join(WS, '.dsh', 'skills', 'workbench', 'SKILL.md');
+
+// 抽取源（dogfood 现场）解析顺序：--src / WB_SRC_WORKBENCH → 老布局 <repo>/../../workbench → 仓库内 workbench/
+// 找不到就明确报错；绝不静默生成一份空 assets。
+const argVal = n => { const i = process.argv.indexOf('--' + n); return i >= 0 ? process.argv[i + 1] : null; };
+const SRC_WB = [
+  argVal('src') || process.env.WB_SRC_WORKBENCH,
+  join(dirname(dirname(PKG)), 'workbench'),
+  join(PKG, 'workbench'),
+].filter(Boolean).find(p => existsSync(join(p, 'SPEC.md')));
+if (!SRC_WB) {
+  console.error('找不到抽取源工作台。用法： node tools/sync-assets.mjs --src <工作台目录> [--skill <SKILL.md>]');
+  process.exit(2);
+}
+const SRC_SKILL = argVal('skill') || process.env.WB_SRC_SKILL || join(dirname(SRC_WB), '.dsh', 'skills', 'workbench', 'SKILL.md');
 const ASSETS = join(PKG, 'assets');
 const pkg = JSON.parse(readFileSync(join(PKG, 'package.json'), 'utf8'));
 
@@ -45,8 +56,8 @@ put('workbench/wb-version.txt', pkg.version + '\n');
 writeFileSync(join(SRC_WB, '.wb-version'), pkg.version + '\n', 'utf8');
 
 writeFileSync(join(ASSETS, 'manifest.json'), JSON.stringify({
-  name: pkg.name, version: pkg.version, generatedAt: new Date().toISOString(), source: SRC_WB, count: files.length, files
+  name: pkg.name, version: pkg.version, generatedAt: new Date().toISOString(), source: basename(SRC_WB), count: files.length, files
 }, null, 2) + '\n', 'utf8');
 
-console.log('assets written: ' + files.length + ' files -> ' + ASSETS);
+console.log('assets written: ' + files.length + ' files -> ' + ASSETS + '  (src: ' + SRC_WB + ')');
 for (const f of files) console.log('  ' + f);

@@ -1,8 +1,8 @@
 {
   "name": "wb-kit",
-  "version": "0.4.4",
-  "generatedAt": "2026-10-14T09:10:39.276Z",
-  "source": "C:\\Users\\18413\\Documents\\deepseek-harness\\default-workspace\\workbench",
+  "version": "0.5.1",
+  "generatedAt": "2026-10-14T10:01:42.356Z",
+  "source": "workbench",
   "count": 40,
   "files": [
     "workbench/SPEC.md",

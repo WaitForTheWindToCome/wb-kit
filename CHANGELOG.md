@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.1] — 2026-10-14
+
+### Fixed
+- **`wb upgrade` 不再「看起来升级了、其实没到」**：升级覆盖面从少数白名单扩到全部脚手架交付物 —— 老实例此前**拿不到 0.5.0 新增的 `workbench/bin/dispatch.mjs` 与 `LEAD-MODE.md`**；同时 `upgrade` 现在会把 `.wb-version` 写回实例（此前只读不写，实例里的版本号永远停在旧值、迁移提示反复出现）
+- **发布包里的版本戳不再陈旧**：v0.5.0 的 `assets/workbench/wb-version.txt` 与 `assets/manifest.json` 还写着 `0.4.4`（先 `sync` 后 `bump` 的顺序错误，`wb init` 会据此写下错的 `.wb-version`）。现在 `npm test` 直接断言「assets 版本 == package.json 版本」，同类错误推不出去
+- **agent 技能里的派发指令更新**：`skill/workbench/SKILL.md` 此前仍教 agent 用会话内私有的 `.crew/bin/crew.ps1`，现改为随包发布的 `node workbench/bin/dispatch.mjs`（工具无关，见 0.5.0）
+
+### Changed
+- `tools/sync-assets.mjs` 支持 `--src <工作台目录>` / `WB_SRC_WORKBENCH`，不再依赖「仓库与实例的相对位置」；`assets/manifest.json` 不再写入本机绝对路径
+- 维护脚本（推送/发布）改为位置无关：路径从脚本自身位置推导，仓库整体搬家不需要改脚本
+
+### Tests
+- 冒烟测试新增断言：assets 版本一致性、manifest 文件齐全、**老实例升级能补发新交付物**、**升级绝不触碰记录文件**
+
 ## [0.5.0] — 2026-10-14
 
 ### Added

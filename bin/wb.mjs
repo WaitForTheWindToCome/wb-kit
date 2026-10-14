@@ -114,9 +114,15 @@ function cmdUpgrade() {
     r.startsWith('workbench/templates/') ||
     r.startsWith('workbench/index/') ||
     r.startsWith('workbench/githooks/') ||
+    r.startsWith('workbench/bin/') ||
+    r === 'workbench/LEAD-MODE.md' ||
+    r === 'workbench/wb-version.txt' ||
     r.startsWith('skill/') ||
-    /^workbench\/start-[a-z]+\.cmd$/.test(r);
+    /^workbench\/start-[a-z]+\.cmd$/.test(r) ||
+    /^workbench\/[0-9a-z-]+\/README\.md$/.test(r);   // 目录说明也是脚手架
   const r = copyAssets({ target: targetDir, agent, force: true, only: isUpgradable, dryRun: !!argv['dry-run'] });
+  // 版本戳必须写回：否则实例里记录的一直是旧版本，迁移提示会永远重复（0.5.0 的真实缺陷）
+  if (!argv['dry-run']) writeFileSync(verFile, META.version + '\n', 'utf8');
   console.log('\n' + (argv['dry-run'] ? '待更新 ' + r.changed + ' 个文件' : '已更新 ' + r.wrote + ' 个文件，' + r.skipped + ' 个无变化'));
   console.log('记录文件（00-inbox…80-archive、projects/）永远不会被 upgrade 触碰。');
   if (!argv['dry-run'] && oldVer !== META.version) {
