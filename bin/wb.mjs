@@ -217,7 +217,7 @@ function cmdStatus() {
   const byStatus = {};
   for (const r of rows) byStatus[r.status] = (byStatus[r.status] || 0) + 1;
   console.log('按状态： ' + Object.entries(byStatus).map(([k, v]) => k + ' ' + v).join(' · '));
-  const TERMINAL = new Set(['accepted', 'rejected', 'archived', 'complete', 'page']);
+  const TERMINAL = new Set(['accepted', 'rejected', 'archived', 'complete', 'page', 'succeeded', 'pass', 'superseded']);
   const open = rows.filter(r => !TERMINAL.has(r.status));
   if (open.length) {
     console.log('未收口（' + open.length + '）：');

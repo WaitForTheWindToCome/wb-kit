@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- `wb status` 的"未收口"清单收紧终态定义：`succeeded` / `pass` / `superseded` 等已完成态不再计入（此前会把已跑完的派发与已通过的验收也列出来）
+  - 注：`npx github:` 安装的是分支 HEAD，已包含此改动；v0.4.2 的 tgz 附件里还是旧行为
+
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 与[语义化版本](https://semver.org/lang/zh-CN/)。
 
 ## [0.4.2] — 2026-10-14
