@@ -48,10 +48,14 @@ function walkMd(dir, acc = []) {
   return acc;
 }
 const { createHash } = await import('node:crypto');
-const fpNow = createHash('sha256').update(walkMd(ROOT).map(f => {
-  const s = statSync(f);
-  return relative(ROOT, f).split('\\').join('/') + ':' + s.size + ':' + Math.floor(s.mtimeMs);
-}).join('\n')).digest('hex').slice(0, 12);
+const fpNow = createHash('sha256').update(walkMd(ROOT)
+  .map(f => {
+    const s = statSync(f);
+    return { rel: relative(ROOT, f).split('\\').join('/'), size: s.size, mtime: Math.floor(s.mtimeMs) };
+  })
+  .sort((a, b) => a.rel.localeCompare(b.rel))
+  .map(e => e.rel + ':' + e.size + ':' + e.mtime)
+  .join('\n')).digest('hex').slice(0, 12);
 const stale = Boolean(data.fingerprint) && fpNow !== data.fingerprint;
 
 let bad = 0;

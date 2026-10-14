@@ -215,11 +215,16 @@ const htmlFiles = (function walkHtml(dir, acc = []) {
   }
   return acc;
 })(ROOT);
+// 指纹：按相对路径排序后计算，保证与 selftest 的结果可复现一致
 const fingerprint = createHash('sha256')
-  .update([...mdFiles, ...htmlFiles].map(f => {
-    const s = statSync(f);
-    return relative(ROOT, f).split('\\').join('/') + ':' + s.size + ':' + Math.floor(s.mtimeMs);
-  }).join('\n'))
+  .update([...mdFiles, ...htmlFiles]
+    .map(f => {
+      const s = statSync(f);
+      return { rel: relative(ROOT, f).split('\\').join('/'), size: s.size, mtime: Math.floor(s.mtimeMs) };
+    })
+    .sort((a, b) => a.rel.localeCompare(b.rel))
+    .map(e => e.rel + ':' + e.size + ':' + e.mtime)
+    .join('\n'))
   .digest('hex').slice(0, 12);
 const generatedAt = new Date().toISOString();
 

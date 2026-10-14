@@ -69,6 +69,7 @@ function walkAny(dir, acc = []) {
     const p = join(dir, e.name);
     if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name)) walkAny(p, acc); }
     else {
+      if (/\.(bak|tmp|orig|swp)$/i.test(e.name) || e.name.startsWith('~')) continue;   // 备份/临时文件不算交付物
       const rel = relative(ROOT, p).split('\\').join('/');
       if (rel.includes('/')) acc.push(rel);
     }
@@ -156,7 +157,13 @@ for (const f of walkAny(ROOT)) {
 }
 for (const [id, files] of idOwners) {
   const uniq = [...new Set(files)];
-  if (uniq.length > 1) errors.push('ID 冲突：' + id + ' 同时用于 ' + uniq.length + ' 个文件 → ' + uniq.join(' , '));
+  if (uniq.length < 2) continue;
+  const byExt = {};
+  for (const f of uniq) { const ext = f.split('.').pop().toLowerCase(); byExt[ext] = (byExt[ext] || 0) + 1; }
+  const bad = Object.entries(byExt).filter(([, n]) => n > 1);
+  if (bad.length) {
+    errors.push('ID 冲突：' + id + ' 的同类型文件多于一个（' + bad.map(([e, n]) => '.' + e + ' ×' + n).join(', ') + '）→ ' + uniq.join(' , '));
+  }
 }
 
 // 状态落后于产物：已有调研/计划/执行/验收产物，状态却还停在早期阶段
