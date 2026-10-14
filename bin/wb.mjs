@@ -110,13 +110,124 @@ function cmdUpgrade() {
   console.log('wb-kit v' + META.version + ' → 更新规范/模板/脚本到 ' + targetDir + (argv['dry-run'] ? '（dry-run）' : ''));
   console.log('实例规范版本：' + oldVer + ' → ' + META.version);
   const isUpgradable = r =>
-    UPGRADABLE.includes(r) || r.startsWith('workbench/templates/') || r.startsWith('workbench/index/');
+    UPGRADABLE.includes(r) ||
+    r.startsWith('workbench/templates/') ||
+    r.startsWith('workbench/index/') ||
+    r.startsWith('workbench/githooks/') ||
+    r.startsWith('skill/') ||
+    /^workbench\/start-[a-z]+\.cmd$/.test(r);
   const r = copyAssets({ target: targetDir, agent, force: true, only: isUpgradable, dryRun: !!argv['dry-run'] });
   console.log('\n' + (argv['dry-run'] ? '待更新 ' + r.changed + ' 个文件' : '已更新 ' + r.wrote + ' 个文件，' + r.skipped + ' 个无变化'));
   console.log('记录文件（00-inbox…80-archive、projects/）永远不会被 upgrade 触碰。');
   if (!argv['dry-run'] && oldVer !== META.version) {
     console.log('迁移提示：规范/模板/脚本已更新；结构性变更见 CHANGELOG.md 对应版本小节。');
   }
+  return 0;
+}
+
+const NEW_KINDS = {
+  item: { dir: '10-items', tpl: 'item.md' },
+  research: { dir: '20-research', tpl: 'research.md' },
+  decision: { dir: '30-decisions', tpl: 'decision.md' },
+  plan: { dir: '40-plans', tpl: 'plan.md' },
+  acceptance: { dir: '40-plans', tpl: 'acceptance.md' },
+  exec: { dir: '50-exec', tpl: 'exec.md' },
+  verify: { dir: '60-verify', tpl: 'verify.md' },
+  knowledge: { dir: '70-knowledge', tpl: 'knowledge.md' },
+};
+function maxSeq(wb, prefix) {
+  const re = prefix === 'ADR' ? /^ADR-(\d{4})/ : new RegExp('^' + prefix + '-\\d{4}-(\\d{4})');
+  const grp = 1;
+  let max = 0;
+  const stack = [wb];
+  while (stack.length) {
+    const d = stack.pop();
+    if (!existsSync(d)) continue;
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      if (e.name.startsWith('.')) continue;
+      const p = join(d, e.name);
+      if (e.isDirectory()) { if (e.name !== 'node_modules' && e.name !== 'index') stack.push(p); continue; }
+      const m = re.exec(e.name);
+      if (m) max = Math.max(max, Number(m[grp]));
+    }
+  }
+  return max;
+}
+function slugify(t) {
+  return String(t).replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').slice(0, 40) || 'untitled';
+}
+function cmdNew() {
+  const kind = argv._[1];
+  const title = argv._[2] || '';
+  const spec = NEW_KINDS[kind];
+  if (!spec) { console.log('用法: wb new <' + Object.keys(NEW_KINDS).join(' | ') + '> "<标题>"'); return 1; }
+  if (!title) { console.log('缺少标题： wb new ' + kind + ' "<标题>"'); return 1; }
+  const wb = join(targetDir, 'workbench');
+  const tplPath = join(wb, 'templates', spec.tpl);
+  if (!existsSync(tplPath)) { console.log('找不到模板： ' + tplPath); return 1; }
+  // ID 前缀按 SPEC §3：ADR 是全局四位；其余是 <TYPE>-<年份>-<四位>
+  const prefix = { '10-items': 'WB', '20-research': 'RS', '30-decisions': 'ADR', '40-plans': null, '50-exec': 'EX', '60-verify': 'VR', '70-knowledge': 'KB' }[spec.dir];
+  let pfx = prefix;
+  if (spec.dir === '40-plans') pfx = (spec.tpl === 'plan.md') ? 'PLAN' : 'ACC';
+  const n = maxSeq(wb, pfx) + 1;
+  const id = pfx === 'ADR' ? 'ADR-' + String(n).padStart(4, '0') : pfx + '-' + new Date().getFullYear() + '-' + String(n).padStart(4, '0');
+  const now = new Date().toISOString().slice(0, 19) + '+08:00';
+  let t = readFileSync(tplPath, 'utf8');
+  t = t.replace(/^id:.*$/m, 'id: ' + id);
+  t = t.replace(/^title:.*$/m, 'title: ' + title);
+  t = t.replace(/^created:.*$/m, 'created: ' + now);
+  t = t.replace(/^updated:.*$/m, 'updated: ' + now);
+  t = t.replace(/^# <.*>$/m, '# ' + title);
+  const dir = join(wb, spec.dir);
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, id + '-' + slugify(title) + '.md');
+  if (existsSync(file)) { console.log('已存在，未覆盖： ' + rel(file)); return 1; }
+  writeFileSync(file, t, 'utf8');
+  console.log('已创建 ' + rel(file));
+  console.log('ID: ' + id + '   下一步：把 frontmatter 填全，或让 agent 按 SPEC 补内容。');
+  if (argv['no-build'] !== true && existsSync(join(wb, 'index', 'build.mjs'))) run(join(wb, 'index', 'build.mjs'), targetDir);
+  return 0;
+}
+function cmdStatus() {
+  const wb = join(targetDir, 'workbench');
+  const fmField = (t, k) => { const m = new RegExp('^' + k + ': *(.+)$', 'm').exec(t); if (!m) return ''; return m[1].replace(/\s+#.*$/, '').replace(/^[\"']|[\"']$/g, '').trim(); };
+  const KIND = { '00-inbox': '收件箱', '10-items': '条目', '20-research': '调研', '30-decisions': '决策', '40-plans': '计划', '50-exec': '执行', '60-verify': '验收', '70-knowledge': '知识', '80-archive': '归档', 'projects': '项目' };
+  const rows = [];
+  const stack = [wb];
+  while (stack.length) {
+    const d = stack.pop();
+    if (!existsSync(d)) continue;
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      if (e.name.startsWith('.')) continue;
+      const p = join(d, e.name);
+      if (e.isDirectory()) { if (!['node_modules', 'index', 'artifacts', 'templates', 'log'].includes(e.name)) stack.push(p); continue; }
+      if (!/\.(md|html)$/i.test(e.name) || e.name.toUpperCase() === 'README.MD') continue;
+      const segs = relative(wb, p).split('\\').join('/').split('/');
+      if (segs.length < 2) continue;              // 根目录的 SPEC/PORTABLE 等不算记录
+      const top = segs[0];
+      const t = readFileSync(p, 'utf8');
+      const isHtml = /\.html$/i.test(e.name);
+      rows.push({ kind: KIND[top] || (isHtml ? '页面' : '其他'), id: fmField(t, 'id') || e.name.replace(/\.(md|html)$/i, ''), status: isHtml ? 'page' : (fmField(t, 'status') || '-'), updated: fmField(t, 'updated') || fmField(t, 'created'), title: fmField(t, 'title') || '' });
+    }
+  }
+  console.log('工作台 ' + wb + '（' + rows.length + ' 条记录）');
+  const byKind = {};
+  for (const r of rows) byKind[r.kind] = (byKind[r.kind] || 0) + 1;
+  console.log('按类型： ' + Object.entries(byKind).map(([k, v]) => k + ' ' + v).join(' · '));
+  const byStatus = {};
+  for (const r of rows) byStatus[r.status] = (byStatus[r.status] || 0) + 1;
+  console.log('按状态： ' + Object.entries(byStatus).map(([k, v]) => k + ' ' + v).join(' · '));
+  const TERMINAL = new Set(['accepted', 'rejected', 'archived', 'complete', 'page']);
+  const open = rows.filter(r => !TERMINAL.has(r.status));
+  if (open.length) {
+    console.log('未收口（' + open.length + '）：');
+    for (const r of open.slice(0, 20)) {
+      const days = r.updated ? Math.floor((Date.now() - Date.parse(r.updated)) / 86400000) : NaN;
+      const flag = Number.isFinite(days) && days > 30 ? '  ⚠ ' + days + ' 天未动' : '';
+      console.log('  ' + r.status.padEnd(10) + ' ' + r.id + '  ' + (r.title || '').slice(0, 40) + flag);
+    }
+  }
+  console.log('健康检查请用： wb check    ｜ 打开看板： 双击 workbench/start-dashboard.cmd');
   return 0;
 }
 
@@ -129,6 +240,8 @@ function cmdHelp() {
     '  watch [dir]      监听 Markdown 变化并自动重建（前台常驻）',
     '  check [dir]      自检：看板能否渲染、索引是否生成、模板是否齐全',
     '  upgrade [dir]    更新规范/模板/脚本（不碰任何记录文件）',
+    '  new <kind> "<标题>"  按模板 + 自动编号建一条记录（kind: item|research|decision|plan|acceptance|exec|verify|knowledge）',
+    '  status [dir]     终端速览：各类型/各状态计数 + 未收口事项',
     '  version          打印版本', '',
     '选项:',
     '  --dir=<path>     目标目录（等价于 init/watch/check/upgrade 的位置参数）',
@@ -147,7 +260,7 @@ function cmdHelp() {
 
 let code = 0;
 try {
-const table = { init: cmdInit, upgrade: cmdUpgrade, help: cmdHelp };
+const table = { init: cmdInit, upgrade: cmdUpgrade, help: cmdHelp, new: cmdNew, status: cmdStatus };
 if (table[cmd]) code = table[cmd]();
 else if (cmd === 'version' || argv.version) console.log(META.version);
 else if (cmd === 'build') code = run(join(targetDir, 'workbench', 'index', 'build.mjs'), targetDir);

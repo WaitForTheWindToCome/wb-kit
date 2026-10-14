@@ -2,6 +2,17 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 与[语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.4.2] — 2026-10-14
+
+### Added
+- **`wb new <kind> "<标题>"`** —— 按模板 + **自动编号**建一条记录（kind: item | research | decision | plan | acceptance | exec | verify | knowledge）。
+  编号扫描整个 `workbench/`（含 `.html` 页面），**从根上避免"漏 frontmatter"与 ID 撞车**；建完自动重建看板
+- **`wb status [dir]`** —— 终端速览：各类型/各状态计数 + **未收口事项清单**（>30 天未动会标 ⚠），不开浏览器也能掌握进度
+
+### Fixed
+- **`wb upgrade` 现在会补发新增交付物**：启动脚本（`start-*.cmd`）、git hooks（`.githooks/`）、agent 技能（`.dsh/`、`.claude/`）。
+  此前它只更新"已存在且在可升级清单里"的文件，导致老实例升级后拿不到新加的文件（实测：v0.2.1 实例升级到 0.3.0 时没拿到启动脚本）
+
 ## [0.4.1] — 2026-10-14
 
 ### Fixed
