@@ -1,0 +1,9 @@
+#!/bin/sh
+# 推送前跑回归测试：红了就不让推，避免把失败推到 CI（然后收到失败邮件）
+set -e
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT"
+echo "[pre-push] 运行冒烟测试 + 校验器回归测试…"
+node tools/smoke-test.mjs > /dev/null || { echo "[pre-push] ❌ smoke-test 失败，已阻止推送"; exit 1; }
+node assets/workbench/index/test-validate.mjs > /dev/null || { echo "[pre-push] ❌ 校验器回归测试失败，已阻止推送"; exit 1; }
+echo "[pre-push] ✅ 全绿，允许推送"
