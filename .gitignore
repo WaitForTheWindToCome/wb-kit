@@ -7,3 +7,6 @@ Thumbs.db
 
 # 维护现场（含 GitHub token），永不入库
 .publish/
+
+# Windows 中文输入法（搜狗）在某些 cwd 下会写出未展开变量的目录，纯垃圾
+%SystemDrive%/
