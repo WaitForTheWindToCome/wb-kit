@@ -25,6 +25,28 @@
 | 9 | 说"**独立验收**" | `60-verify/VR-*.md`：逐条对照 ACC + 证据 + 复跑 | **G4 验收（人批）** |
 | 10 | 说"**沉淀**" | `70-knowledge/KB-*.md`，条目进 `80-archive/` | G5 归档 |
 
+## 手动建记录：`wb new`
+
+不想让 agent 建、或想自己起个头：
+
+```bash
+wb new item "改一下对账口径"        # 自动编号 WB-2026-0007，套用模板，自带 frontmatter
+wb new exec "跑一遍回归"            # EX-…
+wb new decision "存储选型"          # ADR-…（全局四位）
+```
+
+**编号扫描整个 `workbench/`（含 .html 页面）**，所以不会与已有文件撞号，也不会出现"漏 frontmatter"。
+
+## 终端看全局：`wb status`
+
+```bash
+wb status
+# 工作台 …（21 条记录）
+# 按类型： 项目 1 · 知识 8 · 验收 2 · 执行 3 · 计划 3 · 决策 1 · 调研 1 · 条目 1 · 收件箱 1
+# 按状态： active 5 · page 7 · pass 2 · succeeded 3 · proposed 1 · complete 1 · verifying 1
+# 未收口（4）：…（>30 天未动会标 ⚠）
+```
+
 ## 三道命令（日常只需要这三条）
 
 ```bash

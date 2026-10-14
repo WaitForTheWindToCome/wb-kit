@@ -7,11 +7,14 @@
   本地干净台账走不到这个分支，是 **CI 的测试夹具**先撞上的 —— 这也是 CI 存在的意义
 - 去掉与新规则重复的旧"ID 重复"报错（同一个问题不再报两遍），并同步更新校验器测试的断言与变异锚点
 
-## [Unreleased]
+## [0.4.4] — 2026-10-14
+
+### Added
+- `docs/walkthrough.md` 增补 `wb new` 与 `wb status` 的用法（含"编号扫全库、不会撞号"的说明）
 
 ### Changed
-- `wb status` 的"未收口"清单收紧终态定义：`succeeded` / `pass` / `superseded` 等已完成态不再计入（此前会把已跑完的派发与已通过的验收也列出来）
-  - 注：`npx github:` 安装的是分支 HEAD，已包含此改动；v0.4.2 的 tgz 附件里还是旧行为
+- `wb status` 的"未收口"清单收紧终态定义：`succeeded` / `pass` / `superseded` 等已完成态不再计入
+- 仓库新增 **`pre-push` 钩子**：推送前自动跑冒烟测试 + 校验器回归测试，红了就推不出去（避免把失败推到 CI）；`npm test` 也改为跑全套
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 与[语义化版本](https://semver.org/lang/zh-CN/)。
 
