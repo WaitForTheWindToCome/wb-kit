@@ -1,9 +1,9 @@
 {
   "name": "wb-kit",
   "version": "0.4.4",
-  "generatedAt": "2026-10-14T08:51:42.934Z",
+  "generatedAt": "2026-10-14T09:10:39.276Z",
   "source": "C:\\Users\\18413\\Documents\\deepseek-harness\\default-workspace\\workbench",
-  "count": 38,
+  "count": 40,
   "files": [
     "workbench/SPEC.md",
     "workbench/README.md",
@@ -41,6 +41,8 @@
     "workbench/githooks/post-checkout",
     "workbench/start-dashboard.cmd",
     "workbench/start-server.cmd",
+    "workbench/LEAD-MODE.md",
+    "workbench/bin/dispatch.mjs",
     "skill/workbench/SKILL.md",
     "workbench/wb-version.txt"
   ]

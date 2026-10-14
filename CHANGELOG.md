@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.0] — 2026-10-14
+
+### Added
+- **`workbench/bin/dispatch.mjs`** —— **工具无关的派发器**：把任务包交给任意编程 agent 并回收结构化结果。
+  支持 `claude` / `codex` / `opencode` / `zcode` / `custom --cmd "<任意命令>"`；**同一工作流复用同一会话**（键 `tool@cwd#workstream`，注册表 `50-exec/sessions.json`）；原始输出落 `50-exec/artifacts/dispatch/`；抽 session_id / 退出码 / 成本
+  ```bash
+  node workbench/bin/dispatch.mjs --task workbench/50-exec/tasks/T-001.md --tool codex --cwd D:\repo
+  ```
+- **`workbench/LEAD-MODE.md`** —— 「谁当 Lead」的三种部署形态（单 agent / 双 agent / Claude 当 Lead 调其他 CLI），以及形态 C 必须守的五条硬规矩（写域不重叠、并发 ≤2、worker 自述不算证据、执行者不自验收、状态与产物同步）
+
+### Notes
+- 实测：用 `claude` 派发一个极小任务，会话 `5f9f3e82…`、成本 $0.116、worker 精确产出预期文件、注册表按键记录 ✅
+
 ## [Unreleased]
 
 ### Fixed
