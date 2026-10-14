@@ -2,6 +2,15 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 与[语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.3.0] — 2026-10-14
+
+### Added
+- **记录支持安全子集 HTML**：`<details>` 折叠、`<table>` 表、`<img>` 图、`<kbd>` 等原样渲染（此前全部被转义成文字）；含 `on*=` 或 `javascript:` 的标签以及其他 HTML 仍然转义，普通文本里的 `<` `>` 也照旧安全
+- **看板显示条目附件**：自动扫描 `<阶段目录>/artifacts/<ID>/`（及 frontmatter 的 `artifacts_dir`），在条目详情里列出文件名与大小，**可点击打开**；`.html` 附件（如单文件前端原型）直接在浏览器渲染
+
+### Why
+真实使用里：① 记录里写 HTML 只看到文字；② 派发产生的大量附件（原始数据、日志、HTML 原型）在磁盘上有、在看板上却看不见。
+
 ## [0.2.2] — 2026-10-14
 
 ### Added

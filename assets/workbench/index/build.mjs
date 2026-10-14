@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // workbench/index/build.mjs — 从 Markdown 派生 SQLite 索引 + 只读 web 看板
 // 零依赖（Node >= 22.5 的 node:sqlite）。用法：node workbench/index/build.mjs
-import { readFileSync, writeFileSync, readdirSync, statSync, renameSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, statSync, renameSync, rmSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -135,11 +135,25 @@ const pick = (o, path, d = null) => path.split('.').reduce((a, k) => (a && typeo
 
 /* ---------------- Markdown -> HTML（够用即可） ---------------- */
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// 允许保留的原始 HTML 安全子集（其余一律转义成文本）：支持 <details> 折叠、<img> 图、<table> 表等
+const RAW_TAG = /<\/?(details|summary|img|br|hr|table|thead|tbody|tr|th|td|kbd|mark|figure|figcaption|sup|sub|small|video|audio|source)\b[^>]*>/gi;
+const UNSAFE_TAG = /\son[a-z]+\s*=|javascript:|data:text\/html/i;
+function holdRawHtml(s) {
+  const kept = [];
+  const text = String(s).replace(RAW_TAG, m => {
+    if (UNSAFE_TAG.test(m)) return m;
+    kept.push(m);
+    return '\u0000' + (kept.length - 1) + '\u0000';
+  });
+  return { text, kept };
+}
 function inline(s){
-  let t = esc(s);
+  const { text, kept } = holdRawHtml(s);
+  let t = esc(text);
   t = t.replace(/\u0060([^\u0060]+)\u0060/g, '<code>$1</code>');
   t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
+  t = t.replace(/\u0000(\d+)\u0000/g, (m, i) => kept[Number(i)] ?? '');
   return t;
 }
 function mdToHtml(md){
@@ -196,6 +210,28 @@ const fingerprint = createHash('sha256')
   .digest('hex').slice(0, 12);
 const generatedAt = new Date().toISOString();
 
+// 附件清单：<同目录>/artifacts/<ID>/ 以及 frontmatter 的 artifacts_dir
+function listArtifacts(rel, data) {
+  const dir = rel.split('/').slice(0, -1).join('/');
+  const id = data.id || rel.split('/').pop().replace(/\.md$/, '');
+  const dirs = [];
+  if (typeof data.artifacts_dir === 'string' && data.artifacts_dir) dirs.push(data.artifacts_dir.replace(/\\/g, '/').replace(/\/+$/, ''));
+  dirs.push(dir + '/artifacts/' + id);
+  const seen = new Set(), out = [];
+  for (const d of dirs) {
+    const abs = join(ROOT, d);
+    if (!existsSync(abs)) continue;
+    for (const f of readdirSync(abs, { withFileTypes: true })) {
+      if (!f.isFile()) continue;
+      const p = d + '/' + f.name;
+      if (seen.has(p)) continue;
+      seen.add(p);
+      out.push({ path: p, name: f.name, size: statSync(join(ROOT, p)).size });
+    }
+  }
+  return out.sort((a, b) => a.name.localeCompare(b.name)).slice(0, 40);
+}
+
 const records = [];
 for (const file of mdFiles) {
   const rel = relative(ROOT, file).split('\\').join('/');
@@ -219,6 +255,7 @@ for (const file of mdFiles) {
     updated: data.updated || data.created || null,
     file: rel,
     body,
+    files: listArtifacts(rel, data),
     html: mdToHtml(body),
   });
 }
@@ -290,6 +327,10 @@ const css = [
 'aside blockquote{margin:.6em 0;padding:.2em .9em;border-left:3px solid var(--accent);color:var(--dim)}',
 '.bar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}',
 '.hint{color:var(--dim);font-size:12px}',
+'.fsec{margin:14px 0 6px;font-weight:600;font-size:13px}',
+'#files{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}',
+'.filelink{font-size:13px;color:var(--accent);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:5px 9px;display:flex;justify-content:space-between;gap:10px}',
+'.filelink:hover{border-color:var(--accent)}',
 ].join('\n');
 
 const js = [
@@ -309,9 +350,12 @@ const js = [
 'function board(){const rows=F();const cols=[...new Set([...D.statusOrder.filter(s=>rows.some(r=>r.status===s)),...rows.filter(r=>!D.statusOrder.includes(r.status)).map(r=>r.status)])];',
 'document.getElementById("board").innerHTML=cols.map(c=>"<div class=col><h3><span>"+(c?(SL[c]||c):"无状态")+"</span><span>"+rows.filter(r=>r.status===c).length+"</span></h3><div class=cards>"+rows.filter(r=>r.status===c).map(cardHtml).join("")+"</div></div>").join("")}',
 'function table(){document.getElementById("tbody").innerHTML=F().map(r=>"<tr onclick=\\"show(\'"+r.id+"\')\\"><td>"+r.id+"</td><td>"+r.title+"</td><td>"+(KL[r.kind]||r.kind)+"</td><td>"+(r.status?(SL[r.status]||r.status):"")+"</td><td>"+(r.priority||"")+"</td><td>"+(r.project||"")+"</td><td>"+String(r.updated||"").slice(0,10)+"</td></tr>").join("")}',
+'function filesBox(r){const f=r.files||[];if(!f.length)return "";return "<div class=fsec>附件 "+f.length+"</div><div id=files></div>"}',
+'function renderFiles(r){const box=document.getElementById("files");if(!box)return;box.textContent="";for(const x of (r.files||[])){const a=document.createElement("a");a.className="filelink";a.target="_blank";a.rel="noreferrer";a.href="../"+x.path;const n=document.createElement("span");n.textContent=x.name;const s=document.createElement("span");s.textContent=x.size>1024?(x.size/1024).toFixed(1)+" KB":x.size+" B";a.appendChild(n);a.appendChild(s);box.appendChild(a);}}',
 'function show(id){const r=R.find(x=>x.id===id);if(!r)return;',
 'const meta=["priority","project","owner","verdict","tags","updated"].filter(k=>r[k]&&(!Array.isArray(r[k])||r[k].length)).map(k=>"<span class=tag>"+k+" "+((Array.isArray(r[k])?r[k].join(", "):r[k]))+"</span>").join(" ");',
-'document.getElementById("panel").innerHTML="<div class=bar><button id=cls>关闭</button><span class=badge>"+(KL[r.kind]||r.kind)+"</span><span class=badge>"+(r.status?(SL[r.status]||r.status):"-")+"</span><span class=badge>"+r.file+"</span></div><h2>"+r.id+" · "+r.title+"</h2><div style=margin-bottom:10px>"+meta+"</div>"+r.html;',
+'document.getElementById("panel").innerHTML="<div class=bar><button id=cls>关闭</button><span class=badge>"+(KL[r.kind]||r.kind)+"</span><span class=badge>"+(r.status?(SL[r.status]||r.status):"-")+"</span><span class=badge>"+r.file+"</span></div><h2>"+r.id+" · "+r.title+"</h2><div style=margin-bottom:10px>"+meta+"</div>"+filesBox(r)+r.html;',
+'renderFiles(r);',
 'document.getElementById("cls").onclick=()=>document.getElementById("panel").classList.remove("open");',
 'document.getElementById("panel").classList.add("open")}',
 'function render(){stats();board();table()}',

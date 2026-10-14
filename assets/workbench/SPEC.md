@@ -119,6 +119,9 @@ next_action: 等待 AI 清洗与初筛
 
 ---
 
+- 正文支持 **Markdown + 安全子集 HTML**（`<details>` 折叠、`<table>` 表、`<img>` 图等）；看板原样渲染，含 `on*=` / `javascript:` 的标签与其余 HTML 一律转义为文本（ADR-0004）。想展示字面标签请用行内代码包裹。
+- **附件**（原始数据、日志、单文件 HTML 原型等）放 `<阶段目录>/artifacts/<ID>/`（或 frontmatter 的 `artifacts_dir`）；看板会在条目详情里列出并可点击打开，`.html` 在浏览器里直接渲染。
+
 ## 5. 状态机
 
 ```
